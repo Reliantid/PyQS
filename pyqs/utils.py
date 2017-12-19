@@ -4,7 +4,7 @@ import pickle
 
 
 def decode_message(message):
-    message_body = message.get_body()
+    message_body = message['Body']
     json_body = json.loads(message_body)
     if 'task' in message_body:
         return json_body

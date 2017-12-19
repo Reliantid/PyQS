@@ -1,17 +1,15 @@
-import boto
+import boto3
 import json
 import logging
 import os
 import signal
 import time
 
-from boto.sqs.message import Message
-
 from mock import patch, Mock, MagicMock
 from moto import mock_sqs
 
 from pyqs.main import main, _main
-from pyqs.worker import ManagerWorker, _get_region
+from pyqs.worker import ManagerWorker
 from tests.utils import MockLoggingHandler, ThreadWithReturnValue2, ThreadWithReturnValue3
 
 
@@ -20,8 +18,8 @@ def test_manager_worker_create_proper_children_workers():
     """
     Test managing process creates multiple child workers
     """
-    conn = boto.connect_sqs()
-    conn.create_queue("email")
+    conn = boto3.client('sqs')
+    conn.create_queue(QueueName="email")
 
     manager = ManagerWorker(queue_prefixes=['email'], worker_concurrency=3, interval=2, batchsize=10)
 
@@ -259,38 +257,6 @@ def test_master_handles_signals(sys):
 
     # Then we exit
     sys.exit.assert_called_once_with(0)
-
-
-def test_region_from_string_that_exists():
-    """
-    Test region parsing from string for existing region
-    """
-
-    region_name = 'us-east-1'
-
-    region = _get_region(region_name)
-    region.shouldnt.be.none
-
-
-def test_region_from_string_that_does_not_exist():
-    """
-    Test region parsing from string for non-existant region
-    """
-
-    region_name = 'foobar'
-
-    region = _get_region(region_name)
-    region.should.be.none
-
-
-def test_region_from_string_that_is_none():
-    """
-    Test region parsing from empty string
-    """
-    region_name = None
-
-    region = _get_region(region_name)
-    region.should.be.none
 
 
 @mock_sqs

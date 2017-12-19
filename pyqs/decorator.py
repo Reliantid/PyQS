@@ -1,8 +1,7 @@
 import json
 import logging
 
-import boto
-from boto.sqs.message import Message
+import boto3
 
 from .utils import function_to_import_path
 
@@ -14,15 +13,15 @@ conn = None
 def get_or_create_queue(queue_name):
     global conn
     if conn is None:
-        conn = boto.connect_sqs()
-    queue = conn.get_queue(queue_name)
-    if queue:
-        return queue
+        conn = boto3.client('sqs')
+    queue = conn.get_queue_url(QueueName=queue_name)
+    if queue.get('QueueUrl'):
+        return queue['QueueUrl']
     else:
-        return conn.create_queue(queue_name)
+        return client.create_queue(QueueName=queue_name)['QueueUrl']
 
 
-def task_delayer(func_to_delay, queue_name, delay_seconds=None, override=False):
+def task_delayer(func_to_delay, queue_name, delay_seconds=0, override=False):
     function_path = function_to_import_path(func_to_delay, override=override)
 
     if not queue_name:
@@ -44,15 +43,14 @@ def task_delayer(func_to_delay, queue_name, delay_seconds=None, override=False):
             'kwargs': kwargs,
         }
 
-        message = Message()
-        message.set_body(json.dumps(message_dict))
-        queue.write(message, _delay_seconds)
+        conn.send_message(QueueUrl=queue, DelaySeconds=delay_seconds,
+          MessageBody=json.dumps(message_dict))
 
     return wrapper
 
 
 class task(object):
-    def __init__(self, queue=None, delay_seconds=None, custom_function_path=None):
+    def __init__(self, queue=None, delay_seconds=0, custom_function_path=None):
         self.queue_name = queue
         self.delay_seconds = delay_seconds
         self.function_path = custom_function_path
