@@ -301,6 +301,6 @@ class ManagerWorker(object):
             if not worker.is_alive():
                 logger.info("Worker Process {} is no longer responding, spawning a new worker.".format(worker.pid))
                 self.worker_children.pop(index)
-                worker = ProcessWorker(self.internal_queue, self.interval, connection_args=self.connection_args)
+                worker = ProcessWorker(self.internal_queue, self.interval)
                 worker.start()
                 self.worker_children.append(worker)
